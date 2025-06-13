@@ -1,0 +1,170 @@
+<!-- templates/schedule.html -->
+<!--<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Device Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/black-dashboard.css') }}">
+</head>
+-->
+
+{% extends "/layouts/base.html" %}
+{% block title %} Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card ">
+                <div class="card-header">
+                    <h4 class="card-title">Device Schedule 등록</h4>
+                </div>
+
+                <form role="form" id="schedule-form">
+                    
+                    <div class="card-body px-5 py-3">
+                        <div class="row">
+                            <div class="col-md-12 px-md-1">
+                                <label for="device_id">디바이스 선택:</label>
+                                <select name="device_id" id="device_id">
+                                    {% for device in devices %}
+                                    <option value="{{ device.device_id }}">{{ device.device_type }}</option>
+                                    {% endfor %}
+                                </select><br><br>
+                            </div>
+
+                            <div class="col-md-12 px-md-1">
+                                <label for="on_time">켜는 시간 (YYYY-MM-DD HH:MM:SS):</label>
+                                <input type="text" id="on_time" name="on_time"><br><br>
+                            </div>
+
+                            <div class="col-md-12 px-md-1">
+                            <label for="off_time">끄는 시간 (선택):</label>
+                            <input type="text" id="off_time" name="off_time"><br><br>
+
+                            <label><input type="checkbox" id="is_recurring" name="is_recurring"> 매일 반복</label><br><br>
+                            <button type="submit" class="btn btn-fill btn-primary">등록</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="card ">
+        <div class="card-header">
+            <h4 class="card-title">등록된 스케줄</h4>
+        </div>
+        
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table tablesorter " id="schedule-table">
+                    <thead class=" text-primary">
+                        <tr>
+                            <th>ID</th>
+                            <th>Device</th>
+                            <th>On Time</th>
+                            <th>Off Time</th>
+                            <th>Status</th>
+                            <th>삭제</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock content %}
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+
+
+    <script>
+        const userRole = "{{ current_user.user_role }}";
+
+        document.getElementById('schedule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const payload = {
+                device_id: form.device_id.value,
+                on_time: form.on_time.value,
+                off_time: form.off_time.value,
+                status_now: 'on',
+                is_recurring: form.is_recurring.checked
+            };
+
+            const res = await fetch('/smartfarm/schedules/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            alert(result.message);
+        });
+
+        async function loadScheduleList() {
+            const res = await fetch('/smartfarm/schedules/list');
+            const list = await res.json();
+            const tbody = document.querySelector('#schedule-table tbody');
+            tbody.innerHTML = '';
+
+            list.forEach(s => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${s.schedule_id}</td>
+                    <td>${s.device_type || 'Unknown'}</td>
+                    <td>${s.on_time}</td>
+                    <td>${s.off_time || ''}</td>
+                    <td>${s.status_now}</td>
+                    <td>
+                        ${userRole === 'admin' ? `<button onclick="deleteSchedule(${s.schedule_id})">삭제</button>` : ''}
+                    </td>
+                    `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function deleteSchedule(id) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const res = await fetch(`/smartfarm/schedules/delete/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await res.json();
+            alert(result.message);
+            loadScheduleList();
+        }
+
+        // 초기 목록 불러오기
+        window.onload = () => {
+            loadScheduleList();
+            
+            if (userRole !== 'admin') {
+                // 등록 폼 입력 및 버튼 비활성화
+                document.querySelectorAll('#schedule-form input, #schedule-form select, #schedule-form button').forEach(el => {
+                    el.disabled = true;
+                });
+
+                // 안내 메시지 추가
+                const msg = document.createElement('div');
+                msg.textContent = "※ 관리자만 스케줄을 등록할 수 있습니다.";
+                msg.style.color = 'red';
+                msg.style.marginTop = '10px';
+                document.getElementById('schedule-form').appendChild(msg);
+            }
+        };
+
+        // 페이지를 떠날 때 fetch 반복 중지
+        window.addEventListener("beforeunload", () => {
+            clearInterval(intervalId);
+        });
+    </script>
+
+{% endblock javascripts %}

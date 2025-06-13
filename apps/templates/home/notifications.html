@@ -1,0 +1,48 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Notifications {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+  <div class="content">
+    <div class="row">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h4 class="card-title">Alarm history (last 7 days)</h4>
+          </div>
+          <div class="card-body">
+            <div class="alert alert-info alert-with-icon alert-danger" >
+              <span data-notify="icon" class="tim-icons icon-alert-circle-exc"></span>
+              <span data-notify="message">EC 센서 응답 없음. 수동으로 농도를 확인해주세요.</span>
+            </div>
+
+            <div class="alert alert-info alert-with-icon alert-danger" >
+              <span data-notify="icon" class="tim-icons icon-alert-circle-exc"></span>
+              <span data-notify="message">CO₂ 센서 응답 없음. 장비를 확인해주세요.</span>
+            </div>
+
+            <div class="alert alert-info alert-with-icon alert-danger" >
+              <span data-notify="icon" class="tim-icons icon-alert-circle-exc"></span>
+              <span data-notify="message">수위가 낮습니다. 급수가 필요합니다.</span>
+            </div>
+
+            <div class="alert alert-info alert-with-icon alert-warning" >
+              <span data-notify="icon" class="tim-icons icon-bell-55"></span>
+              <span data-notify="message">습도가 기준치를 초과했습니다. 환기 또는 제습이 필요합니다.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      
+    </div>
+  </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}{% endblock javascripts %}

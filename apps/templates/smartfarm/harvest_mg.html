@@ -1,0 +1,250 @@
+<!-- templates/schedule.html -->
+<!--<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Device Schedule</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/black-dashboard.css') }}">
+</head>
+-->
+
+{% extends "/layouts/base.html" %}
+{% block title %} Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="content">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card ">
+                <div class="card-header">
+                    <h4 class="card-title">토마토 수확 기록</h4>
+                </div>
+
+
+                <form id="harvest-form" role="form">
+                    <div class="card-body px-5 py-3">
+                        <div class="row">
+                            <div class="col-md-12 px-md-1">
+                                <label for="crop_name">작물 선택:</label>
+                                <select name="crop_name" id="crop_name">
+                                    {% for crop in crops %}
+                                <option value="{{ crop.crop_name }}">{{ crop.crop_name }}</option>
+                                {% endfor %}
+                            </select><br><br>
+                            </div>
+
+                        
+                            <div class="col-md-12 px-md-1">
+                            <label>수확 날짜: <input type="date" id="harvested_at" required></label><br><br></div>
+                            <div class="col-md-12 px-md-1">
+                            <label>수확량 (g): <input type="number" id="weight_grams" step="0.1" required></label><br><br></div>
+                            <button type="submit" class="btn btn-fill btn-primary">기록 저장</button>
+
+                        </div></div>
+                </form>
+                
+            </div>
+        </div>
+    </div>
+
+
+    <div class="col-12">
+        <div class="card card-chart">
+            <div class="card-header">
+                <h4 class="card-title">전체 수확량</h4>
+            </div>
+            
+            <div class="card-body">
+                <div class="chart-area" style="position: relative; height: 100%;">
+                    <canvas id="totalChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <div class="card ">
+        <div class="card-header">
+            <h4 class="card-title">품종별 개별 그래프</h4>
+        </div>
+        
+        <div class="card-body">
+            <div class="row">
+            {% for crop, data in chart_by_crop.items() %}
+            <div class="col-lg-4">
+                <div class="card card-chart">
+                    <h5 class="card-category">{{ crop }}</h5>
+                    <canvas id="chart_{{ loop.index }}"></canvas>
+                </div>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+    </div>
+
+
+
+</div>
+
+{% endblock content %}
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+
+<script src="{{ url_for('static', filename='assets/js/chart.js') }}"></script>
+
+<script>
+    document.getElementById('harvest-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+    
+        const payload = {
+            crop_name: form.crop_name.value,
+            harvested_at: document.getElementById('harvested_at').value,
+            weight_grams: parseFloat(document.getElementById('weight_grams').value)
+        };
+    
+        const res = await fetch('/smartfarm/harvest_mg/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    
+        const result = await res.json();
+        alert(result.message);
+        location.reload(); // 성공 후 새로고침하여 그래프 반영
+    });
+    </script>
+    
+
+<script>
+    // 1. 전체 수확량 그래프
+    const allData = {{ chart_all|tojson }};
+    new Chart(document.getElementById('totalChart'), {
+        type: 'line',
+        data: {
+            labels: allData.map(d => d.date),
+            datasets: [{
+                label: '전체 수확량 (g)',
+                data: allData.map(d => d.weight),
+                fill: true,
+                borderColor: '#00d6b4',
+                backgroundColor: 'rgba(0, 214, 180, 0.2)',
+                tension: 0.4,
+                pointRadius: 0,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    type: 'category',  // 명시적으로 category로 고정
+                    ticks: {
+                    autoSkip: false
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+                }
+
+        }
+    });
+
+    // 2. 품종별 그래프 반복 렌더링
+    const chartByCrop = {{ chart_by_crop|tojson }};
+    let i = 1;
+    for (const [crop, data] of Object.entries(chartByCrop)) {
+        new Chart(document.getElementById(`chart_${i}`), {
+            type: 'line',
+            data: {
+                labels: data.map(d => d.date),
+                datasets: [{
+                    label: "",
+                    data: data.map(d => d.weight),
+                    fill: true,
+                    borderColor: '#00d6b4',
+                    backgroundColor: 'rgba(0, 214, 180, 0.2)',
+                    tension: 0.4,
+                    pointRadius: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            },
+            scales: {
+                x: {
+                    type: 'category',  // 명시적으로 category로 고정
+                    ticks: {
+                    autoSkip: false
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+                }
+
+        });
+        i++;
+    }
+
+
+    // 3. 품종별 비교 (한 그래프)
+    const multiData = {{ chart_multi|tojson }};
+    new Chart(document.getElementById('multiChart'), {
+        type: 'line',
+        data: {
+            labels: multiData.labels,
+            datasets: multiData.datasets.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                fill: false
+            }))
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+</script>
+
+<script>
+    const userRole = "{{ current_user.user_role }}";
+  
+    if (userRole !== 'admin') {
+      // 1. 입력 필드 비활성화
+      document.querySelectorAll('#harvest-form input, #harvest-form select, #harvest-form button').forEach(el => {
+        el.disabled = true;
+      });
+  
+      // 2. 안내 메시지 추가
+      const notice = document.createElement('div');
+      notice.textContent = "※ 관리자만 수확 기록을 등록할 수 있습니다.";
+      notice.style.color = 'red';
+      notice.style.marginTop = '10px';
+      document.getElementById('harvest-form').appendChild(notice);
+    }
+
+    window.addEventListener("beforeunload", () => {
+        clearInterval(intervalId);
+    });
+  </script>
+
+
+{% endblock javascripts %}

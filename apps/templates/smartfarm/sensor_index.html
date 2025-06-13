@@ -1,0 +1,338 @@
+{% extends "layouts/base.html" %}
+
+{% block title %} Dashboard {% endblock %} 
+
+<!-- Specific Page CSS goes HERE  -->
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+    <div class="content">
+        <div class="row">
+            <div class="col-12">
+                <div class="card card-chart">
+                    <div class="card-header ">
+                        <div class="row">
+                            <div class="col-sm-6 text-left">
+                                <h5 class="card-category">All Tomato Varieties</h5>
+                                <h2 class="card-title">
+                                    <i class="tim-icons icon-trophy text-success" style="margin-right: 8px;"></i>
+                                    누적수확량
+                                </h2>
+                            </div>
+                            
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="chartBig1"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <div class="row">
+            <div class="col-lg-4">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">Temperature</h5>
+                        <h3 class="card-title">
+                            <i class="tim-icons icon-minimal-right text-primary"></i>
+                            <span id="latest-temperature">-- °C</span>
+                          </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="chartLinePurple"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">Humidity</h5>
+                        <h3 class="card-title">
+                            <i class="tim-icons icon-minimal-right text-info"></i>
+                            <span id="latest-humidity">-- %</span>
+                          </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="CountryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">CO2</h5>
+                        <h3 class="card-title">
+                            <i class="tim-icons icon-minimal-right text-success"></i>
+                            <span id="latest-co2">-- ppm</span>
+                          </h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="chartLineGreen"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12 col-lg-6">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h4 class="card-title">Current Air Condition Derived Values</h4>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-group">
+                            <li class="list-group-item">온도: <span id="val-temp">-- °C</span></li>
+                            <li class="list-group-item">상대 습도: <span id="val-rh">-- %</span></li>
+                            <li class="list-group-item">이슬점 온도: <span id="val-dew">-- °C</span></li>
+                            <li class="list-group-item">절대 습도: <span id="val-ah">-- g/m³</span></li>
+                            <li class="list-group-item">습구 온도: <span id="val-wbt">-- °C</span></li>
+                            <li class="list-group-item">수증기 압력: <span id="val-vp">-- hPa</span></li>
+                            <li class="list-group-item">포화 수증기 압력: <span id="val-svp">-- hPa</span></li>
+                            <li class="list-group-item">혼합비: <span id="val-mr">-- g/kg</span></li>
+                            <li class="list-group-item">엔탈피(공기의 열에너지): <span id="val-h">-- kJ/kg</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-lg-6">
+                <div class="card card-chart">
+                    <div class="card-header">
+                        <h5 class="card-category">EC</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-area">
+                            <canvas id="ec_chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        
+    </div>
+
+{% endblock content %}
+
+<!-- Specific Page JS goes HERE  -->
+{% block javascripts %}
+
+  <script src="{{ url_for('static', filename='assets/js/chart.js') }}"></script>
+
+
+  <script>
+    $(document).ready(function () {
+      // demo.initDashboardPageCharts();  // 필요시 수동 호출
+    });
+  </script>
+
+    <script>
+    fetch('/smartfarm/chart/cumulative_harvest')
+      .then(res => res.json())
+      .then(data => {
+        const ctx = document.getElementById('chartBig1').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels,
+            datasets: [{
+              label: '누적 수확량(g)',
+              data: data.values,
+              borderColor: '#00f2c3',
+              backgroundColor: 'rgba(0, 242, 195, 0.2)',
+              fill: true,
+              tension: 0.4,
+              pointRadius: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: {
+                padding: {
+                    top: 20,
+                    bottom: 20,
+                    left: 20,
+                    right: 20
+                }
+            },
+            plugins: {
+              legend: { display: false }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        autoSkip: false, // 라벨 생략 방지
+                        maxRotation: 45, // 최대 회전 각도
+                        minRotation: 0,
+                        callback: function(value) {
+                        return this.getLabelForValue(value);
+                        }
+                    }
+            },
+                y: {
+                    beginAtZero: true,
+                    title: {
+                    display: true,
+                    text: '수확량 (g)'
+                    }
+                }
+            }
+          }
+        });
+      });
+
+      // 페이지를 떠날 때 fetch 반복 중지
+    window.addEventListener("beforeunload", () => {
+        clearInterval(intervalId);
+    });
+    </script>
+
+<script>
+    function updateLatestSensorValues() {
+      fetch('/smartfarm/chart/latest_sensor_values')
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById('latest-temperature').innerText = `${data.temperature ?? '--'} °C`;
+          document.getElementById('latest-humidity').innerText = `${data.humidity ?? '--'} %`;
+          document.getElementById('latest-co2').innerText = `${data.co2 ?? '--'} ppm`;
+        });
+    }
+    
+    setInterval(updateLatestSensorValues, 30000);  // 30초마다 갱신
+    updateLatestSensorValues();  // 초기 로딩
+
+    // 페이지를 떠날 때 fetch 반복 중지
+    window.addEventListener("beforeunload", () => {
+        clearInterval(intervalId);
+    });
+    </script>
+
+<script>
+    function calculateAirProperties(T, RH) {
+        const tempK = T + 273.15;
+    
+        // 포화 수증기압 (hPa)
+        const es = 6.112 * Math.exp((17.67 * T) / (T + 243.5));
+    
+        // 실제 수증기압
+        const e = es * RH / 100;
+    
+        // 이슬점
+        const ln_e = Math.log(e / 6.112);
+        const dew = (243.5 * ln_e) / (17.67 - ln_e);
+    
+        // 절대습도 (g/m³)
+        const absHumidity = (216.7 * e) / tempK;
+    
+        // 혼합비 (g/kg)
+        const mr = 622 * (e / (1013.25 - e));  // assuming 1013.25 hPa total pressure
+    
+        // 습구온도 (근사식)
+        const wbt = T * Math.atan(0.151977 * Math.sqrt(RH + 8.313659)) +
+            Math.atan(T + RH) - Math.atan(RH - 1.676331) +
+            0.00391838 * Math.pow(RH, 1.5) * Math.atan(0.023101 * RH) -
+            4.686035;
+    
+        // 엔탈피 (kJ/kg dry air)
+        const h = 1.006 * T + mr / 1000 * (2501 + 1.86 * T);
+    
+        return {
+            es: es.toFixed(2),
+            e: e.toFixed(2),
+            dew: dew.toFixed(2),
+            absHumidity: absHumidity.toFixed(2),
+            wbt: wbt.toFixed(2),
+            mr: mr.toFixed(2),
+            h: h.toFixed(2)
+        };
+    }
+    
+    function updateDerivedValues() {
+        fetch('/smartfarm/chart/latest_sensor_values')
+            .then(res => res.json())
+            .then(data => {
+                const T = data.temperature;
+                const RH = data.humidity;
+    
+                document.getElementById('val-temp').innerText = `${T} °C`;
+                document.getElementById('val-rh').innerText = `${RH} %`;
+    
+                if (T != null && RH != null) {
+                    const result = calculateAirProperties(T, RH);
+    
+                    document.getElementById('val-dew').innerText = `${result.dew} °C`;
+                    document.getElementById('val-ah').innerText = `${result.absHumidity} g/m³`;
+                    document.getElementById('val-wbt').innerText = `${result.wbt} °C`;
+                    document.getElementById('val-vp').innerText = `${result.e} hPa`;
+                    document.getElementById('val-svp').innerText = `${result.es} hPa`;
+                    document.getElementById('val-mr').innerText = `${result.mr} g/kg`;
+                    document.getElementById('val-h').innerText = `${result.h} kJ/kg`;
+                }
+            });
+    }
+    
+    setInterval(updateDerivedValues, 30000);
+    updateDerivedValues();
+    </script>
+
+<script>
+    fetch('/smartfarm/chart/ec_data')
+      .then(res => res.json())
+      .then(data => {
+        const ctx = document.getElementById('ec_chart').getContext('2d');
+        new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: data.labels,  // 날짜 (ex. "05.28")
+            datasets: [{
+              label: '일별 EC 값',
+              data: data.values,
+              borderColor: '#ff6384',
+              backgroundColor: 'rgba(255, 99, 132, 0.2)',
+              fill: true,
+              tension: 0.3,
+              pointRadius: 3,
+              pointHoverRadius: 5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: true }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: '날짜'
+                }
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: 'EC (mS/cm)'
+                }
+              }
+            }
+          }
+        });
+      });
+    </script>
+
+{% endblock javascripts %}
+
